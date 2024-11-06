@@ -1,57 +1,81 @@
-public class TSP {
-    static final int INF = Integer.MAX_VALUE; // Infinite distance to represent unreachable cities
-    
-    // Function to find the minimum cost of visiting all cities
-    public static int tsp(int[][] dist, int n) {
-        // DP table where dp[mask][i] represents the minimum cost of visiting all cities in 'mask' and ending at city 'i'
-        int[][] dp = new int[1 << n][n];
-        
-        // Initialize dp array with infinity
-        for (int[] row : dp) {
-            Arrays.fill(row, INF);
+import java.util.*;
+
+public class TravelingSalesman {
+
+    private static int[][] dist;  // Distance matrix
+    private static int n;         // Number of cities
+
+    // Memoization table, dp[mask][i] is the minimum cost to visit all cities in 'mask' and end at city 'i'
+    private static int[][] dp;
+    // To store the path (order of cities visited)
+    private static int[][] path;
+
+    // TSP using dynamic programming with bitmasking
+    public static int tsp(int mask, int pos) {
+        // Base case: if all cities have been visited, return the distance to the starting city (0)
+        if (mask == (1 << n) - 1) {
+            return dist[pos][0]; // Return to the starting city
         }
-        
-        // Base case: starting city is 0 and the cost of starting at city 0 is 0
-        dp[1][0] = 0;  // Only city 0 is visited (represented by the mask 1)
-        
-        // Iterate over all subsets of cities (from 1 to 2^n - 1)
-        for (int mask = 1; mask < (1 << n); mask++) {
-            for (int u = 0; u < n; u++) {
-                if ((mask & (1 << u)) != 0) {  // If city 'u' is included in the subset 'mask'
-                    // Try to extend the tour to city 'v'
-                    for (int v = 0; v < n; v++) {
-                        if ((mask & (1 << v)) == 0) {  // If city 'v' is not yet visited
-                            dp[mask | (1 << v)][v] = Math.min(dp[mask | (1 << v)][v], dp[mask][u] + dist[u][v]);
-                        }
-                    }
+
+        if (dp[mask][pos] != -1) {
+            return dp[mask][pos]; // Return memoized result if already computed
+        }
+
+        int ans = Integer.MAX_VALUE;
+        for (int city = 0; city < n; city++) {
+            if ((mask & (1 << city)) == 0) { // If city is not visited yet
+                int newAns = dist[pos][city] + tsp(mask | (1 << city), city);
+                if (newAns < ans) {
+                    ans = newAns;
+                    path[mask][pos] = city; // Store the path (next city to visit)
                 }
             }
         }
-        
-        // Find the minimum cost to visit all cities and return to the starting city (0)
-        int minCost = INF;
-        for (int i = 1; i < n; i++) {
-            minCost = Math.min(minCost, dp[(1 << n) - 1][i] + dist[i][0]);
-        }
-        
-        return minCost;
+
+        return dp[mask][pos] = ans; // Memoize the result
     }
-    
+
+    // Print the cities visited in the optimal order
+    public static void printPath() {
+        int mask = 1;  // Start at city 0
+        int lastCity = 0;
+
+        System.out.print("Optimal path: ");
+        for (int i = 0; i < n; i++) {
+            System.out.print(lastCity + " -> ");
+            int nextCity = path[mask][lastCity];
+            mask |= (1 << nextCity);  // Mark the next city as visited
+            lastCity = nextCity;
+        }
+        System.out.println("0"); // Return to the starting city
+    }
+
     public static void main(String[] args) {
-        // Example input: distance matrix
-        int[][] dist = {
-            {0, 10, 15, 20},
-            {10, 0, 35, 25},
-            {15, 35, 0, 30},
-            {20, 25, 30, 0}
+        // Example distance matrix (symmetric matrix)
+        dist = new int[][]{
+            {0, 10, 15, 20, 25},
+            {10, 0, 35, 25, 30},
+            {15, 35, 0, 30, 5},
+            {20, 25, 30, 0, 15},
+            {25, 30, 5, 15, 0}
         };
-        
-        int n = dist.length;  // Number of cities
-        
-        // Calculate the minimum cost of visiting all cities
-        int result = tsp(dist, n);
-        
-        // Output the result
-        System.out.println("Minimum cost to visit all cities: " + result);
+
+        n = dist.length;  // Number of cities
+
+        // Initialize dp and path arrays
+        dp = new int[1 << n][n];
+        path = new int[1 << n][n];
+
+        // Fill dp array with -1 (indicating unvisited states)
+        for (int[] row : dp) {
+            Arrays.fill(row, -1);
+        }
+
+        // Find the minimum cost of visiting all cities starting from city 0
+        int minCost = tsp(1, 0);  // Start with city 0 visited (mask = 1) and at city 0
+        System.out.println("Minimum cost: " + minCost);
+
+        // Print the optimal path
+        printPath();
     }
 }
